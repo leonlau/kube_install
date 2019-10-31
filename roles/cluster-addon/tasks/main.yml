@@ -1,0 +1,84 @@
+
+## DNS
+- block:
+  - name: 在 master 节点创建相关目录
+    file: path={{ item }} state=directory
+    with_items:
+    - /opt/kube/kube-system
+  # DNS文件中部分参数根据hosts文件设置而定，因此需要用template模块替换参数
+  - name: 准备 DNS的部署文件
+    template: src=coredns.yaml.j2 dest=/opt/kube/kube-system/coredns.yaml
+  - name: 创建coredns部署
+    shell: "{{ bin_dir }}/kubectl apply -f /opt/kube/kube-system/coredns.yaml"
+  delegate_to: "{{ groups['kube-master'][0]}}"
+  run_once: true
+
+# metrics-server
+- block:
+    - name: 复制metrics-server yaml文件
+      copy:
+        src: metrics-server
+        dest: "/opt/kube/kube-system"
+    - name: 准备 metrics-server 的部署模板
+      template: 
+        src: metrics-server-deployment.yaml.j2 
+        dest: /opt/kube/kube-system/metrics-server/metrics-server-deployment.yaml
+    - name: 创建 metrics-server部署
+      shell: "{{ bin_dir }}/kubectl apply -f /opt/kube/kube-system/metrics-server"
+  when: 'metricsserver_install == "yes"'
+  ignore_errors: true
+  run_once: true
+  delegate_to: "{{ groups['kube-master'][0]}}"
+
+
+
+# 现阶段 dashboard 获取metrics仍旧依赖于heapster，因此需连带安装heapster  
+- block:
+    # - name: 创建 dashboard 部署
+    #   shell: " {{ bin_dir }}/kubectl apply -f {{ base_dir }}/manifests/heapster/heapster-only"
+    - name: 复制 dashboard yaml文件
+      copy:
+        src: dashboard
+        dest: "/opt/kube/kube-system"
+    - name: 准备 dashboard 的部署模板
+      template: 
+        src=kubernetes-dashboard.yaml.j2
+        dest=/opt/kube/kube-system/dashboard/kubernetes-dashboard.yaml
+    - name: 创建 dashboard 部署
+      shell: "{{ bin_dir }}/kubectl apply -f /opt/kube/kube-system/dashboard"
+  when: 'dashboard_install == "yes"'
+  ignore_errors: true
+  run_once: true
+  delegate_to: "{{ groups['kube-master'][0]}}"
+
+- block:
+    - name: 复制 traefik yaml文件
+      copy:
+        src: traefik
+        dest: "/opt/kube/kube-system"
+    - name: 准备 traefik 的部署模板
+      template: 
+        src: traefik-ingress.yaml.j2
+        dest: /opt/kube/kube-system/traefik/traefik-ingress.yaml
+    - name: 创建 traefik 部署
+      shell: "{{ bin_dir }}/kubectl apply -f /opt/kube/kube-system/traefik"
+  when: 'ingress_install == "yes" and ingress_backend == "traefik"'
+  delegate_to: "{{ groups['kube-master'][0]}}"
+  run_once: true
+  ignore_errors: true
+
+- block:
+    - name: 复制 nginx_ingress yaml文件
+      copy:
+        src: nginx_ingress
+        dest: "/opt/kube/kube-system"        
+    - name: 准备 nginx_ingress 的部署模板
+      template: 
+        src: nginx-ingress.yaml.j2
+        dest: /opt/kube/kube-system/nginx-ingress/nginx-ingress.yaml      
+    - name: 创建 nginx_ingress 部署
+      shell: "{{ bin_dir }}/kubectl apply -f /opt/kube/kube-system/nginx-ingress/"
+  when: 'ingress_install == "yes" and ingress_backend == "nginx-ingress"'
+  delegate_to: "{{ groups['kube-master'][0]}}"
+  run_once: true
+  ignore_errors: true

@@ -1,0 +1,38 @@
+# dns 自动安装，'dns_backend'可选"coredns"和“kubedns”
+dns_install: "yes"
+#dns_backend: "coredns"
+# 设置 dns svc ip (这里选用 SERVICE_CIDR 中第2个IP)
+CLUSTER_DNS_SVC_IP: "{{ SERVICE_CIDR | ipaddr('net') | ipaddr(2) | ipaddr('address') }}"
+
+corednsImg: "coredns/coredns:1.5.0"
+
+
+# metric server 自动安装
+metricsserver_install: "yes"
+metricsVer: "v0.3.3"
+metricsImg: "mirrorgooglecontainers/metrics-server-amd64:v0.3.3"
+
+
+
+# dashboard 自动安装
+# 现阶段 dashboard 获取metrics仍旧依赖于heapster，因此需连带安装heapster
+dashboard_install: "no"
+dashboardImg: "mirrorgooglecontainers/kubernetes-dashboard-amd64:v1.10.1"
+dashboardDomain: "dashboard.test.com"
+heapsterImg: "v1.5.4"
+
+
+# ingress 自动安装，可选 "traefik" 和 "nginx-ingress"
+ingress_install: "yes"
+ingress_backend: "traefik"
+traefikUIDomain: "traefik.test.com"
+traefikImg: "traefik:v2.0"
+nginxingImg: "quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.21.0"
+
+
+# efk 自动安装
+#efk_install: "no"
+
+# prometheus 自动安装
+#prometheus_install: "no"
+
